@@ -7,6 +7,7 @@ import pickle
 from sklearn.preprocessing import LabelEncoder
 from sklearn.metrics.pairwise import cosine_similarity
 
+st.set_page_config(page_title="Tourism Recommendation", layout="wide")
 # Load the processed data and models
 @st.cache_data
 def load_models():
