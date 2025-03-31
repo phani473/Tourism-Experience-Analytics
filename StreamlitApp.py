@@ -30,7 +30,9 @@ X_clf = data['X_clf']
 def hybrid_recommendations(user_id, top_n=5):
     user_ratings = df[df['UserId'] == user_id]
     if user_ratings.empty:
-        return df.groupby('Attraction')['Rating'].mean().sort_values(ascending=False).head(top_n)
+        # Return as list of tuples to be consistent
+        popular = df.groupby('Attraction')['Rating'].mean().sort_values(ascending=False).head(top_n)
+        return [(name, 'Popular', '', rating) for name, rating in popular.items()]
     
     liked_attractions = user_ratings[user_ratings['Rating'] >= 4]['AttractionId'].unique()
     if len(liked_attractions) == 0:
@@ -39,17 +41,16 @@ def hybrid_recommendations(user_id, top_n=5):
     sim_scores = []
     for att_id in liked_attractions:
         if att_id in attraction_indices:
-            # Ensure idx is a scalar integer
             idx = attraction_indices[att_id]
             if isinstance(idx, pd.Series):
-                idx = idx.iloc[0]  # Take the first index if multiple exist
-            if idx < cosine_sim.shape[0]:  # Safe comparison with scalar idx
+                idx = idx.iloc[0]
+            if idx < cosine_sim.shape[0]:
                 sim_scores.append(cosine_sim[idx])
-            else:
-                print(f"Warning: Index {idx} for AttractionId {att_id} is out of bounds for cosine_sim with size {cosine_sim.shape[0]}")
     
     if not sim_scores:
-        return df.groupby('Attraction')['Rating'].mean().sort_values(ascending=False).head(top_n)  # Fallback to popular attractions
+        # Return as list of tuples to be consistent
+        popular = df.groupby('Attraction')['Rating'].mean().sort_values(ascending=False).head(top_n)
+        return [(name, 'Popular', '', rating) for name, rating in popular.items()]
     
     avg_sim_scores = np.mean(sim_scores, axis=0)
     content_recs = list(zip(attraction_features['AttractionId'], avg_sim_scores))
@@ -63,7 +64,7 @@ def hybrid_recommendations(user_id, top_n=5):
         recs_with_names.append((att['Attraction'], att['AttractionType'], 
                                att['Country'], score))
     
-    return recs_with_names
+    return recs_with_names or []  # Ensure we return at least an empty list
 
 # Define the input preparation function
 def prepare_input_for_prediction(user_data, attraction_data, visit_mode_name):
